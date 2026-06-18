@@ -1,0 +1,24 @@
+# Model checkpoints
+*.pth
+*.pkl
+
+# Dataset (too large for GitHub)
+dataset/
+*.npy
+
+# StyleGAN repo (cloned at runtime)
+stylegan2-ada-pytorch/
+
+# Jupyter
+.ipynb_checkpoints/
+__pycache__/
+
+# Python
+*.pyc
+*.egg-info/
+dist/
+build/
+
+# OS
+.DS_Store
+Thumbs.db
