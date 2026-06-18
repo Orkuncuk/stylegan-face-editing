@@ -4,7 +4,7 @@ Two-part project exploring semantic face editing in the latent space of a pre-tr
 
 Both notebooks run on Kaggle with a T4 GPU.
 
-**Kaggle notebooks:** [Part 1 — SVM](Yhttps://www.kaggle.com/code/orkunakta/stylegan2-latent-direction-svm) · [Part 2 — Diffusion](https://www.kaggle.com/code/orkunakta/stylegan2-latent-diffusion-cfg)
+**Kaggle notebooks:** [Part 1 — SVM](https://www.kaggle.com/code/orkunakta/stylegan2-latent-direction-svm) · [Part 2 — Diffusion](https://www.kaggle.com/code/orkunakta/stylegan2-latent-diffusion-cfg)
 
 ---
 
