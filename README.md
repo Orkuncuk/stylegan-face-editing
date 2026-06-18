@@ -4,6 +4,8 @@ Two-part project exploring semantic face editing in the latent space of a pre-tr
 
 Both notebooks run on Kaggle with a T4 GPU.
 
+**Kaggle notebooks:** [Part 1 — SVM](Yhttps://www.kaggle.com/code/orkunakta/stylegan2-latent-direction-svm) · [Part 2 — Diffusion](https://www.kaggle.com/code/orkunakta/stylegan2-latent-diffusion-cfg)
+
 ---
 
 ## Repository Structure
@@ -29,7 +31,7 @@ Trains a ResNet18 multi-label classifier on 30K CelebA images to detect facial a
 - **Mean Difference** — subtracts the centroid of the negative class from the positive class centroid
 - **LinearSVC** — finds the hyperplane that best separates the two classes; uses its normal vector as the direction
 
-Editing is then applied as `w_new = w + alpha * direction` in both Z-space and W-space.
+Editing is applied as `w_new = w + alpha * direction` in both Z-space and W-space.
 
 ### Pipeline
 
@@ -61,16 +63,16 @@ Trains an MLP-based diffusion model directly on 20K W-space latent vectors. The 
 
 ### Why diffusion instead of SVM
 
-SVM finds a linear boundary between two classes. The diffusion model learns the full distribution of the W-space and can represent non-linear attribute structure. It also supports multi-attribute conditioning simultaneously.
+SVM finds a linear boundary between two classes. The diffusion model learns the full distribution of W-space and can represent non-linear attribute structure. It also supports multi-attribute conditioning simultaneously.
 
 ### Architecture
 
 ```
 Input: (noisy_w, timestep t, condition c)
 
-noisy_w  →  Linear(512 → 1024)  ─┐
-t        →  Sinusoidal emb        ├──  sum  →  3× Residual blocks  →  Linear(1024 → 512)
-c        →  MLP(3 → 1024)        ─┘
+noisy_w  →  Linear(512 → 2048)  ─┐
+t        →  Sinusoidal embeddings  ├──  sum  →  3× Residual blocks  →  Linear(2048 → 512)
+c        →  MLP(3 → 2048)         ─┘
 ```
 
 Condition `c` is a 3-dim binary vector `[Male, Eyeglasses, Smiling]`. During training, 10% of samples use a null token (`c = -1`) to enable Classifier-Free Guidance at inference.
@@ -78,10 +80,10 @@ Condition `c` is a 3-dim binary vector `[Male, Eyeglasses, Smiling]`. During tra
 ### Direction extraction
 
 ```python
-# CFG-guided direction at multiple timesteps
+# CFG-guided direction averaged over multiple timesteps
 guided_pos = eps_uncond + scale * (eps_pos - eps_uncond)
 guided_neg = eps_uncond + scale * (eps_neg - eps_uncond)
-direction  = (guided_neg - guided_pos).mean over [t=100, 300, 500, 700, 900]
+direction  = mean(guided_neg - guided_pos)  # over t = [100, 300, 500, 700, 900]
 ```
 
 Using multiple timesteps instead of only `t=999` (pure noise) gives more stable directions.
@@ -91,10 +93,11 @@ Using multiple timesteps instead of only `t=999` (pure noise) gives more stable 
 | Setting | Value |
 |---|---|
 | Dataset | 20K StyleGAN2-ADA W vectors (FFHQ) |
+| Hidden dim | 2048 |
 | Timesteps | 1000 (linear schedule) |
 | Epochs | 150 |
 | Optimizer | Adam, lr=1e-4 |
-| LR schedule | Cosine annealing |
+| LR schedule | Cosine annealing with warm restarts (T_0=50, T_mult=2) |
 | EMA decay | 0.9999 |
 | Grad clipping | max_norm=1.0 |
 | CFG dropout | 10% |
@@ -103,26 +106,24 @@ Using multiple timesteps instead of only `t=999` (pure noise) gives more stable 
 
 ## Setup
 
-These notebooks are designed to run on **Kaggle** with the CelebA dataset (`kaggle datasets download -d jessicali9530/celeba-dataset`).
+These notebooks are designed to run on **Kaggle** with the CelebA dataset.
 
-To run locally, install dependencies:
+```bash
+kaggle datasets download -d jessicali9530/celeba-dataset
+```
+
+To run locally:
 
 ```bash
 pip install -r requirements.txt
 git clone https://github.com/NVlabs/stylegan2-ada-pytorch
 ```
 
-Download the pre-trained FFHQ model:
+Pre-trained FFHQ model is downloaded automatically at runtime:
 
 ```python
 network_pkl = "https://nvlabs-fi-cdn.nvidia.com/stylegan2-ada-pytorch/pretrained/ffhq.pkl"
 ```
-
----
-
-## Requirements
-
-See `requirements.txt`. Main dependencies: PyTorch, torchvision, scikit-learn, numpy, matplotlib, tqdm, Pillow, pandas.
 
 ---
 
@@ -131,7 +132,7 @@ See `requirements.txt`. Main dependencies: PyTorch, torchvision, scikit-learn, n
 - **Generator:** StyleGAN2-ADA (NVIDIA, pre-trained on FFHQ)
 - **Classifier:** ResNet18 fine-tuned on CelebA
 - **Direction finding:** Scikit-learn LinearSVC, mean-difference, score-weighted averaging
-- **Diffusion model:** Custom MLP with sinusoidal timestep embeddings
+- **Diffusion model:** Custom MLP (hidden_dim=2048) with sinusoidal timestep embeddings
 - **Guidance:** Classifier-Free Guidance (CFG)
 - **Framework:** PyTorch
 - **Platform:** Kaggle (NVIDIA T4 GPU)
